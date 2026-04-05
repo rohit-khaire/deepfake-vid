@@ -26,7 +26,35 @@ cd deepfake-vid
 pip install -r requirements.txt
 ```
 
-3. (Optional) Download pre-trained weights from the [MesoNet repository](https://github.com/DariusAf/MesoNet)
+3. (Optional) Download pre-trained weights from the [MesoNet repository](https://github.com/DariusAf/MesoNet).
+   The repository includes links to pretrained `.pth` files and model checkpoints.
+
+   Example weights path:
+   ```bash
+   weights/meso4_180_epochs.pth
+   ```
+
+## Using model weights
+
+1. Place the downloaded weights file in a local folder inside your repo, for example:
+   ```bash
+   mkdir -p weights
+   mv /path/to/downloaded/meso4_180_epochs.pth weights/
+   ```
+2. Use that path with the CLI or Python API:
+   - CLI:
+     ```bash
+     python detect_video.py path/to/video.mp4 --weights weights/meso4_180_epochs.pth
+     ```
+   - Streamlit app: enter `weights/meso4_180_epochs.pth` in the "Model weights path" field.
+   - Python API:
+     ```python
+     from src.detector import DeepfakeVideoDetector
+
+     detector = DeepfakeVideoDetector(weights_path='weights/meso4_180_epochs.pth', threshold=0.5)
+     result = detector.detect_video('video.mp4')
+     ```
+3. If you leave the weights path blank, the tool will still run but it will use an untrained model and results will not be reliable.
 
 ## Usage
 
