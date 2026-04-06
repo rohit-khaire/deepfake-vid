@@ -11,11 +11,34 @@ Upload a video to detect if it's a deepfake using advanced AI models.
 This tool analyzes frames for manipulation artifacts.
 """)
 
+# Display available pre-trained weights
+with st.expander("📚 Available Pre-trained Weights"):
+    st.markdown("""
+    **Pre-trained models available in `weights/` folder:**
+    - `Meso4_DF.h5` - MesoNet-4 for DeepFakes
+    - `Meso4_F2F.h5` - MesoNet-4 for Face2Face
+    - `MesoInception_DF.h5` - MesoInception for DeepFakes
+    - `MesoInception_F2F.h5` - MesoInception for Face2Face
+    - `MesoInception_F2F.pth` - PyTorch format (recommended)
+    
+    **How to use custom weights:**
+    1. Convert .h5 weights to .pth format (if needed)
+    2. Enter the full path in "Model weights path" field
+    3. Path examples: `weights/Meso4_DF.h5` or `/full/path/to/weights.pth`
+    """)
+
 uploaded_file = st.file_uploader("Upload a video", type=['mp4', 'avi', 'mov', 'mkv'])
 
-weights_path = st.text_input("Model weights path (optional)", "")
+st.markdown("### Model Configuration")
+col1, col2 = st.columns(2)
 
-threshold = st.slider("Detection threshold", 0.0, 1.0, 0.5, 0.01)
+with col1:
+    weights_path = st.text_input("Model weights path (optional)", "", help="Path to custom .pth weights file. Leave empty to use default weights.")
+    if weights_path:
+        st.info(f"📁 Will use custom weights from: `{weights_path}`")
+
+with col2:
+    threshold = st.slider("Detection threshold", 0.0, 1.0, 0.5, 0.01, help="Higher = more conservative (fewer false positives)")
 
 if uploaded_file is not None:
     # Save uploaded file temporarily
@@ -24,7 +47,14 @@ if uploaded_file is not None:
         video_path = tmp_file.name
     
     try:
-        detector = DeepfakeVideoDetector(weights_path=weights_path if weights_path else None, threshold=threshold)
+        try:
+            detector = DeepfakeVideoDetector(weights_path=weights_path if weights_path else None, threshold=threshold)
+        except FileNotFoundError as e:
+            st.error(f"❌ Error: {str(e)}")
+            st.stop()
+        except ValueError as e:
+            st.error(f"❌ Error: {str(e)}")
+            st.stop()
         
         with st.spinner("Analyzing video... This may take a few minutes."):
             result = detector.detect_video(video_path)
@@ -32,6 +62,8 @@ if uploaded_file is not None:
         if 'error' in result:
             st.error(f"Error: {result['error']}")
         else:
+            st.success(f"✅ Analysis complete using {result['weights_source']} model")
+            
             col1, col2 = st.columns(2)
             
             with col1:
@@ -61,4 +93,15 @@ if uploaded_file is not None:
         os.unlink(video_path)
 
 st.markdown("---")
-st.markdown("**Note:** For best results, use pre-trained weights. Download from MesoNet repository.")
+st.markdown("""
+**Model Usage Guide:**
+- **Default mode**: Uses built-in Meso4 architecture
+- **Custom weights**: Provide a .pth PyTorch weights file path
+  - For .h5 (Keras) files: Use `convert_weights.py` to convert first
+  - Command: `python convert_weights.py weights/model.h5`
+
+**Troubleshooting:**
+- If weights fail to load, verify the path and file format (.pth recommended)
+- For .h5 files: Install h5py with `pip install h5py`
+- Check that weights match Meso4 model architecture
+""")

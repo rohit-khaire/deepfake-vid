@@ -104,12 +104,43 @@ def load_pretrained_weights(model, weights_path):
 
     Args:
         model (nn.Module): The MesoNet model instance.
-        weights_path (str): Path to the pre-trained weights file (.pth or .pt).
+        weights_path (str): Path to the pre-trained weights file (.pth, .pt, or .h5).
 
     Returns:
         nn.Module: The model with loaded weights, set to evaluation mode.
+    
+    Raises:
+        FileNotFoundError: If weights file doesn't exist.
+        ValueError: If file format is unsupported.
     """
-    model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
+    import os
+    
+    if not os.path.exists(weights_path):
+        raise FileNotFoundError(f"Weights file not found: {weights_path}")
+    
+    # Detect file format
+    if weights_path.endswith(('.pth', '.pt')):
+        # PyTorch format
+        model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
+    elif weights_path.endswith('.h5'):
+        # Keras/HDF5 format - requires conversion
+        try:
+            import h5py
+            with h5py.File(weights_path, 'r') as h5_file:
+                # Load weights from HDF5
+                # Note: This requires proper mapping of Keras layer names to PyTorch model
+                # For now, we'll raise an informative error
+                raise ValueError(
+                    f"HDF5 format (.h5) detected. To use Keras weights:\n"
+                    f"1. Convert the model using: torch2keras or manual conversion\n"
+                    f"2. Or export as .pth format from the original training script\n"
+                    f"Current file: {weights_path}"
+                )
+        except ImportError:
+            raise ValueError("HDF5 support requires h5py. Install with: pip install h5py")
+    else:
+        raise ValueError(f"Unsupported weights format: {weights_path}. Use .pth or .pt files.")
+    
     model.eval()
     return model
 
